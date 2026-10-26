@@ -1,5 +1,11 @@
 # TuneWave
 
+![Latest release](https://img.shields.io/github/v/release/thehackdesk/TuneWave?include_prereleases&label=Latest%20release)
+![Downloads](https://img.shields.io/github/downloads/thehackdesk/TuneWave/v0.8.0-beta/total?label=Downloads)
+![Android](https://img.shields.io/badge/Android-11%2B-green?logo=android)
+![Top language](https://img.shields.io/github/languages/top/thehackdesk/TuneWave)
+![License](https://img.shields.io/github/license/thehackdesk/TuneWave)
+
 A privacy-first, offline-first Android music player, built from scratch with
 original code. No account, no tracking — your music stays on your device.
 
