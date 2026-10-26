@@ -118,7 +118,7 @@ class LyricsRepository {
             connection.requestMethod = "GET"
             connection.connectTimeout = 10_000
             connection.readTimeout = 10_000
-            connection.setRequestProperty("User-Agent", "TuneWave/0.4.0")
+            connection.setRequestProperty("User-Agent", "TuneWave/0.8.0-beta")
             if (connection.responseCode != HttpURLConnection.HTTP_OK) return null
             return connection.inputStream.bufferedReader().use { it.readText() }
         } finally {

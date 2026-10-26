@@ -8,42 +8,34 @@ import androidx.glance.action.ActionParameters
 import androidx.glance.appwidget.action.ActionCallback
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
+import com.google.common.util.concurrent.ListenableFuture
 import com.tunewave.player.player.MusicService
-import java.util.concurrent.Future
+import kotlinx.coroutines.suspendCancellableCoroutine
 
-/**
- * Widget button actions.
- *
- * Each action talks to [MusicService] through a MediaController
- * built from its SessionToken, exactly the way PlayerViewModel
- * connects to the service. The controller future is kept and
- * reused across taps so a tap does not create and leak a new
- * controller every time; it is released only when the app's
- * process goes away with it.
- *
- * The service itself refreshes the widget state (see
- * [WidgetUpdater]) when the player's state changes, so the
- * buttons do not try to guess the new state here.
- */
 object WidgetControl {
 
-    private var controllerFuture: Future<MediaController>? = null
+    private var controllerFuture: ListenableFuture<MediaController>? = null
 
-    fun command(context: Context, action: (MediaController) -> Unit) {
+    suspend fun command(context: Context, action: (MediaController) -> Unit) {
         val appContext = context.applicationContext
         val existing = controllerFuture?.takeIf { !it.isCancelled }
         val future = existing ?: MediaController.Builder(
             appContext,
             SessionToken(appContext, ComponentName(appContext, MusicService::class.java)),
         ).buildAsync().also { controllerFuture = it }
-        future.addListener(
-            {
-                val controller = runCatching { future.get() }.getOrNull()
-                    ?: return@addListener
-                action(controller)
-            },
-            ContextCompat.getMainExecutor(appContext),
-        )
+
+        suspendCancellableCoroutine { cont ->
+            future.addListener(
+                {
+                    val controller = runCatching { future.get() }.getOrNull()
+                    if (controller != null) {
+                        action(controller)
+                    }
+                    if (cont.isActive) cont.resume(Unit) {}
+                },
+                ContextCompat.getMainExecutor(appContext),
+            )
+        }
     }
 }
 

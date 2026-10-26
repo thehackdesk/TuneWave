@@ -12,7 +12,10 @@
 
     <application
         android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:label="TuneWave"
+        android:supportsRtl="true"
         android:theme="@style/Theme.TuneWave">
         <activity
             android:name=".MainActivity"
@@ -37,7 +40,7 @@
         <service
             android:name=".player.MusicService"
             android:foregroundServiceType="mediaPlayback"
-            android:exported="false">
+            android:exported="true">
             <intent-filter>
                 <action android:name="androidx.media3.session.MediaSessionService" />
             </intent-filter>

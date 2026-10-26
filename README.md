@@ -1,68 +1,170 @@
 # TuneWave
 
-A privacy-first, offline-first Android music player, built from scratch.
+A privacy-first, offline-first Android music player, built from scratch with
+original code. No account, no tracking — your music stays on your device.
 
-Inspired by the idea behind PixelPlayer, but with original code: no account, no tracking. Your music stays on your device.
+> **Beta:** the current version is **0.8.0-beta**. Builds are debug builds for
+> phone testing, not a Play Store release yet. Some features below are still
+> in progress; see [What is not ready yet](#what-is-not-ready-yet).
 
-## Status
+## ‼️ DISCLAIMER
 
-Phase 5 (part 1) — synced lyrics and artist artwork are implemented: lyrics are fetched from LRCLIB (synced LRC when available, otherwise plain lyrics, with the current line highlighted as the song plays) and artist photos are fetched from Deezer's public artist search, shown next to the artist name in the full player. Both need internet, need no API key and no account, and a failed fetch only shows "lyrics not found" — it never interrupts playback. App version is now 0.4.0.
+- TuneWave is an independent, original project. It is **not affiliated with,
+  endorsed by, or connected to PixelPlayer** or any other music player. It
+  was inspired only by the general usability of premium music library apps;
+  all code, layouts and artwork in this repository are original.
+- TuneWave plays **only music already on your device**. It does not download,
+  stream, share or upload your audio files, and it never asks for broad
+  storage access beyond what Android requires to read your music library.
+- Lyrics (LRCLIB) and artist artwork (Deezer) are fetched from public
+  third-party services: they receive only a song's title, artist, album and
+  duration, or an artist's name. They need no API key and no account.
+- Beta builds may contain bugs. There is no warranty; use at your own risk.
+  See [LICENSE](#-license).
 
-Phase 4 remaining items are still pending: true crossfade mixing (needs a dual-player rewrite), the FFmpeg extension (needs an NDK build), and a TagLib tag editor (needs native TagLib). Doing those without device testing would risk breaking playback, so they are deferred to the device-testing stage.
+## Features (0.8.0-beta)
 
-Phase 3 (complete) — the Glance home screen widget is implemented: it shows the current/last song title and artist, with previous, play/pause, next, and Open-app controls. The widget's state is refreshed by MusicService, which owns the player, so it updates even when the app UI is closed. Album art is not shown in the widget yet.
+- Local library scan from MediaStore: songs, albums, artists, folders
+  (folder grouping is best-effort — see below)
+- Playback with queue, shuffle, repeat, seek, and a full Now Playing screen
+  with an "Up next" queue list and a volume slider
+- Background playback via MediaSessionService, with media notification
+  controls, audio focus and headset controls
+- Bottom navigation: Home, Songs, Liked, Library (Albums / Artists /
+  Playlists / Folders / Stats)
+- Home dashboard with a featured mix card, Recently played (last 20 tracks),
+  Favourites and an Albums strip
+- Search across songs, artists and albums; sort by title, artist or duration
+- Playlists: create, rename, delete, add songs — all stored locally
+- Favourites with a dedicated Liked view, and listening stats
+- Daily Mix: a fresh date-seeded mix every day, favourites first
+- Synced lyrics (LRCLIB, with current-line highlight) and artist artwork
+  (Deezer) in the full player — both need internet, neither interrupts
+  playback when they fail
+- Equalizer presets (Flat, Bass Boost, Treble Boost, Vocal, Rock, Pop) and
+  a crossfade duration setting
+- Glance home screen widget with previous / play-pause / next / Open controls
+- Themes: System / Light / Dark, plus an optional Material You dynamic
+  colour switch; current look is charcoal-black with electric lime and
+  soft violet accents
+- Crash-hardened library scan and settings: a missing MediaStore column or
+  a corrupt setting degrades to an empty library or a default, never a crash
 
-Phase 4 (part 1) — advanced audio settings are implemented, but not yet tested on a device or emulator (no Android SDK in the development environment used to write this code). Phone testing is deferred to the end, as agreed.
+### What is not ready yet
 
-Phase 4 part 1 includes: Android Equalizer presets (Flat, Bass Boost, Treble Boost, Vocal, Rock, Pop) applied to the playback audio session on service start, an equalizer on/off setting, and a crossfade duration setting stored for future use. Gapless playback is ExoPlayer's default. True crossfade mixing, FFmpeg extension, and a TagLib tag editor are not yet implemented.
+- True crossfade mixing (needs a dual-player rewrite), FFmpeg extension
+  (needs an NDK build), TagLib tag editor (needs native TagLib)
+- Chromecast, Android Auto, AI playlists (would need the user's own API key)
+- Wear OS, backup/restore, streaming sources
+- Signed Play Store release (AAB/APK) — current builds are debug-signed
 
-Phase 3 part 1 includes: Material You dynamic colour on Android 12+, System/Light/Dark theme setting saved in DataStore, a Settings screen, and album art in the full player (loaded with Coil from MediaStore album art). The Glance home screen widget (see above) completes Phase 3; like all other code here, it has not been device-tested yet and its Glance API usage should be confirmed at the first Android Studio build.
+### A note on folders
 
-Phase 1 includes: MediaStore library scan, song list, play/pause, next/previous, queue, shuffle, repeat, seek, mini-player, full player screen, and background playback via a MediaSessionService.
+On modern Android, scoped storage does not reliably expose a song's real
+folder path from MediaStore. TuneWave groups by the `RELATIVE_PATH` MediaStore
+reports; if a device reports nothing usable, the Folders tab says so honestly
+instead of showing fake folders. Songs, Albums and Artists always work
+regardless.
 
-Phase 2 includes: browse by album and artist, full-text search, sort by title/artist/duration, favourites, playlists (create/add/delete, stored locally in DataStore), and a Stats tab (total songs, total time, total plays, most played song).
+## 🛠️ Tech Stack
 
-Note: folder browsing is not yet implemented. On modern Android, scoped storage does not reliably expose a song's folder path from MediaStore, so Phase 2 uses album/artist organization instead.
+- **Language:** Kotlin
+- **UI:** Jetpack Compose, Material 3
+- **Playback:** Media3 / ExoPlayer, MediaSessionService, Coil (album art),
+  Glance (home screen widget)
+- **Storage:** MediaStore (library), DataStore Preferences (favourites,
+  playlists, play counts, recently played, settings) — no server, no database
+- **Network (optional, online features only):** LRCLIB (lyrics), Deezer
+  public artist search (artist artwork)
+- **Build:** Gradle 8.9, Android Gradle Plugin (see `gradle/libs.versions.toml`),
+  JDK 17, compileSdk 35, minSdk 30, targetSdk 35
 
-## Features (planned)
-
-- Offline playback of local music (MP3, FLAC, AAC, OGG, WAV)
-- Browse by song, album, artist, genre, and folder
-- Queue, shuffle, and repeat
-- Background playback with notification controls
-- Material 3 UI with dark/light themes
-- Playlists and favourites
-- Later: synced lyrics, equalizer, Chromecast, AI playlists
-
-## Requirements
+## 📱 Requirements
 
 - Android 11 (API 30) or higher
 - Android Studio Ladybug (2024.2.1) or newer
 - JDK 17
+- On the phone: audio permission (`READ_MEDIA_AUDIO`) to see your music;
+  internet is optional and only used for lyrics and artist artwork
 
-## Build
+## 🚀 Getting Started
 
-1. Open this project in Android Studio.
-2. Let Gradle sync.
-3. Run on a device or emulator (Build > Make Project, then Run).
+### Run in Android Studio
 
-## Project structure
+1. Clone this repository.
+2. Open the project in Android Studio.
+3. Let Gradle sync.
+4. Run on a device or emulator (Build > Make Project, then Run).
+
+### Build from the command line
+
+```bash
+./gradlew assembleDebug
+```
+
+The debug APK is produced at `app/build/outputs/apk/debug/app-debug.apk`.
+Install it on your phone with `adb install` or by opening the APK file on
+the device. It is debug-signed, for testing only.
+
+## ⬇️ Download
+
+- **Source code:** every GitHub Release on this repository ships the source
+  as a zip/tarball.
+- **Beta test APK:** there is no Play Store listing yet. Beta debug APKs are
+  currently shared directly with testers (for example via Google Drive) while
+  testing is in progress. To get the latest code right now, clone the repo
+  and build it with the steps above.
+- **Latest beta:** 0.8.0-beta (versionCode 11).
+
+## 📂 Project Structure
 
 ```
 app/src/main/java/com/tunewave/player/
 ├── MainActivity.kt          # App entry point, permission request
-├── data/                    # Song model, MediaStore scan, playlists/favourites store, lyrics/artwork fetch
-├── player/                  # MusicService (MediaSessionService), PlayerViewModel
-├── widget/                  # Glance home screen widget, its actions and updater
+├── data/
+│   ├── Song.kt              # Song model + album art URI
+│   ├── MusicRepository.kt   # MediaStore library scan (crash-hardened)
+│   ├── PlaylistStore.kt     # DataStore: favourites, playlists, plays, recent
+│   └── LyricsRepository.kt  # LRCLIB lyrics + Deezer artist artwork
+├── player/
+│   ├── MusicService.kt      # MediaSessionService, background playback
+│   ├── EqualizerManager.kt  # Android Equalizer presets
+│   └── PlayerViewModel.kt   # Playback state, queue, volume, lyrics, stats
+├── widget/                  # Glance home screen widget + actions + updater
 └── ui/
-    ├── theme/               # Material 3 theme
-    └── screens/             # Library list, mini-player, full player
+    ├── theme/               # Material 3 theme (charcoal / lime / violet)
+    └── screens/             # Library, full player, settings
+        ├── LibraryScreen.kt
+        ├── PlayerScreen.kt
+        └── SettingsScreen.kt
 ```
+
+Other top-level files: `build.gradle.kts`, `settings.gradle.kts`,
+`gradle.properties`, `gradle/libs.versions.toml`, `gradlew`, `LICENSE`,
+`.gitignore`.
 
 ## Privacy
 
-TuneWave does not require an account and does not track you. Its online features are lyrics (LRCLIB) and artist artwork (Deezer): they send only the song title, artist, album and duration, or the artist name, to those services, and need no API key. Future AI playlists, when added, will require the user's own API key and will be clearly marked as optional.
+TuneWave does not require an account and does not track you. Everything
+except lyrics and artist artwork works fully offline. The two online features
+send only the minimum metadata described in the Disclaimer, need no API key,
+and can be ignored completely if the phone is offline — playback never
+depends on them. Future AI playlists, when added, will require the user's own
+API key and will be clearly marked as optional.
 
-## License
+## 🤝 Contributing
 
-MIT — see LICENSE.
+Contributions are welcome — issues and pull requests included.
+
+- Keep it original: do not copy code, artwork or layouts from other music
+  players, proprietary or otherwise.
+- Match the existing style: Kotlin + Compose, small focused changes, and a
+  short note in the pull request about what you tested on a real device.
+- Do not add new network services, accounts or tracking without discussing
+  it in an issue first — privacy-first is the point of this app.
+- If you add a feature that needs a permission, explain why in the PR; never
+  request broad storage access unnecessarily.
+
+## 📄 License
+
+MIT — see [LICENSE](LICENSE). Copyright (c) thehackdesk.

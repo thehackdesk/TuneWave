@@ -7,8 +7,8 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.glance.Button
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
-import androidx.glance.action.actionRunCallback
-import androidx.glance.action.actionStartActivity
+import androidx.glance.appwidget.action.actionRunCallback
+import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.provideContent
 import androidx.glance.currentState
@@ -29,30 +29,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.tunewave.player.MainActivity
 
-/**
- * Phase 3 home screen widget, built with Glance.
- *
- * The widget shows the current (or last played) song and three
- * controls: previous, play/pause, next. Tapping the song title
- * opens the app. The widget's own state lives in Glance
- * Preferences, not in the app's DataStore, and is refreshed by
- * [WidgetUpdater] from [com.tunewave.player.player.MusicService],
- * which owns the player and therefore sees track and play-state
- * changes even when the app UI is closed.
- *
- * Album art is not shown: Glance image loading from a MediaStore
- * content URI needs extra plumbing, and this first widget version
- * keeps to text + controls so it stays reliable. The widget has
- * not been tested on a device yet, like the rest of the app, so
- * the Glance API usage here should be confirmed at the first
- * Android Studio build.
- */
 class TuneWaveWidget : GlanceAppWidget() {
 
     override val stateDefinition: GlanceStateDefinition<*> =
         PreferencesGlanceStateDefinition
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
+        val openAppIntent = android.content.Intent(context, MainActivity::class.java).apply {
+            flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+        }
         provideContent {
             val prefs = currentState<Preferences>()
             val title = prefs[WidgetKeys.TITLE] ?: "TuneWave"
@@ -97,7 +82,7 @@ class TuneWaveWidget : GlanceAppWidget() {
                     )
                     Button(
                         text = "Open",
-                        onClick = actionStartActivity<MainActivity>(),
+                        onClick = actionStartActivity(openAppIntent),
                     )
                 }
             }
@@ -105,7 +90,6 @@ class TuneWaveWidget : GlanceAppWidget() {
     }
 }
 
-/** Glance Preferences keys for the widget's own state. */
 object WidgetKeys {
     val TITLE = stringPreferencesKey("widget_title")
     val ARTIST = stringPreferencesKey("widget_artist")

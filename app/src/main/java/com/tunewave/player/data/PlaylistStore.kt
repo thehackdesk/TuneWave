@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "tunewave_prefs")
@@ -28,15 +29,19 @@ class PlaylistStore(private val context: Context) {
     private val favouriteKey = stringPreferencesKey("favourite_ids")
     private val playlistsKey = stringPreferencesKey("playlists")
     private val playsKey = stringPreferencesKey("play_counts")
+    private val recentKey = stringPreferencesKey("recently_played_ids")
     private val themeKey = stringPreferencesKey("theme_mode")
+    private val dynamicColorKey = stringPreferencesKey("dynamic_color")
     private val equalizerEnabledKey = stringPreferencesKey("equalizer_enabled")
     private val equalizerPresetKey = stringPreferencesKey("equalizer_preset")
     private val crossfadeKey = stringPreferencesKey("crossfade_seconds")
 
     // Phase 3 theme setting: 0 = system, 1 = light, 2 = dark.
+    // Every flow has a .catch default: a corrupt DataStore file must
+    // never crash launch, it just resets that setting to its default.
     val themeMode: Flow<Int> = context.dataStore.data.map { prefs ->
         prefs[themeKey]?.toIntOrNull() ?: 0
-    }
+    }.catch { emit(0) }
 
     suspend fun setThemeMode(mode: Int) {
         context.dataStore.edit { prefs ->
@@ -44,18 +49,30 @@ class PlaylistStore(private val context: Context) {
         }
     }
 
+    // Material You dynamic colour: off by default so TuneWave's own
+    // deep-blue palette shows; toggleable in Settings.
+    val dynamicColor: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[dynamicColorKey]?.toBooleanStrictOrNull() ?: false
+    }.catch { emit(false) }
+
+    suspend fun setDynamicColor(enabled: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[dynamicColorKey] = enabled.toString()
+        }
+    }
+
     // Phase 4 audio settings.
     val equalizerEnabled: Flow<Boolean> = context.dataStore.data.map { prefs ->
         prefs[equalizerEnabledKey]?.toBooleanStrictOrNull() ?: false
-    }
+    }.catch { emit(false) }
 
     val equalizerPreset: Flow<String> = context.dataStore.data.map { prefs ->
         prefs[equalizerPresetKey] ?: "Flat"
-    }
+    }.catch { emit("Flat") }
 
     val crossfadeSeconds: Flow<Int> = context.dataStore.data.map { prefs ->
         prefs[crossfadeKey]?.toIntOrNull() ?: 0
-    }
+    }.catch { emit(0) }
 
     suspend fun setEqualizerEnabled(enabled: Boolean) {
         context.dataStore.edit { prefs ->
@@ -81,11 +98,20 @@ class PlaylistStore(private val context: Context) {
             ?.mapNotNull { it.toLongOrNull() }
             ?.toSet()
             ?: emptySet()
-    }
+    }.catch { emit(emptySet()) }
 
     val playlists: Flow<List<Playlist>> = context.dataStore.data.map { prefs ->
         parsePlaylists(prefs[playlistsKey])
-    }
+    }.catch { emit(emptyList()) }
+
+    // Most recently played song ids, most recent first, max 20.
+    // Updated together with play counts whenever a song starts.
+    val recentlyPlayed: Flow<List<Long>> = context.dataStore.data.map { prefs ->
+        prefs[recentKey]
+            ?.split(",")
+            ?.mapNotNull { it.toLongOrNull() }
+            ?: emptyList()
+    }.catch { emit(emptyList()) }
 
     val playCounts: Flow<Map<Long, Int>> = context.dataStore.data.map { prefs ->
         prefs[playsKey]
@@ -102,7 +128,7 @@ class PlaylistStore(private val context: Context) {
             }
             ?.toMap()
             ?: emptyMap()
-    }
+    }.catch { emit(emptyMap()) }
 
     private fun parsePlaylists(raw: String?): List<Playlist> {
         if (raw.isNullOrBlank()) return emptyList()
@@ -169,6 +195,21 @@ class PlaylistStore(private val context: Context) {
         }
     }
 
+    suspend fun renamePlaylist(oldName: String, newName: String) {
+        val cleanName = newName.trim()
+        if (cleanName.isEmpty() || cleanName == oldName) return
+        context.dataStore.edit { prefs ->
+            val current = parsePlaylists(prefs[playlistsKey])
+            if (current.none { it.name == cleanName }) {
+                prefs[playlistsKey] = encodePlaylists(
+                    current.map { playlist ->
+                        if (playlist.name == oldName) playlist.copy(name = cleanName) else playlist
+                    }
+                )
+            }
+        }
+    }
+
     suspend fun recordPlay(songId: Long) {
         context.dataStore.edit { prefs ->
             val current = prefs[playsKey]
@@ -188,6 +229,13 @@ class PlaylistStore(private val context: Context) {
             val next = current.toMutableMap()
             next[songId] = (next[songId] ?: 0) + 1
             prefs[playsKey] = next.entries.joinToString(",") { "${it.key}:${it.value}" }
+            val recent = prefs[recentKey]
+                ?.split(",")
+                ?.mapNotNull { it.toLongOrNull() }
+                ?: emptyList()
+            prefs[recentKey] = (listOf(songId) + recent.filter { it != songId })
+                .take(20)
+                .joinToString(",")
         }
     }
 }

@@ -1,9 +1,8 @@
 package com.tunewave.player.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -11,23 +10,25 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
-import coil.compose.AsyncImage
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.RepeatOne
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
+import androidx.compose.material.icons.filled.VolumeDown
+import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -39,11 +40,17 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import com.tunewave.player.player.PlayerViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -55,10 +62,14 @@ fun PlayerScreen(viewModel: PlayerViewModel, onBack: () -> Unit) {
     val shuffleEnabled by viewModel.shuffleEnabled.collectAsState()
     val repeatMode by viewModel.repeatMode.collectAsState()
     val favourites by viewModel.favourites.collectAsState()
+    val queue by viewModel.queue.collectAsState()
+    val volume by viewModel.volume.collectAsState()
     val lyrics by viewModel.lyrics.collectAsState()
     val lyricsSynced by viewModel.lyricsSynced.collectAsState()
     val lyricsLoading by viewModel.lyricsLoading.collectAsState()
     val artistImageUrl by viewModel.artistImageUrl.collectAsState()
+
+    var sliderPosition by remember { mutableStateOf<Float?>(null) }
 
     val song = currentSong
     Scaffold(
@@ -137,14 +148,20 @@ fun PlayerScreen(viewModel: PlayerViewModel, onBack: () -> Unit) {
                 }
                 Spacer(modifier = Modifier.height(32.dp))
                 val duration = song.durationMs
+                val displayPosition = sliderPosition?.toLong() ?: positionMs
+
                 Slider(
-                    value = positionMs.toFloat(),
-                    onValueChange = { viewModel.seekTo(it.toLong()) },
+                    value = (sliderPosition ?: positionMs.toFloat()).coerceIn(0f, duration.toFloat().coerceAtLeast(1f)),
+                    onValueChange = { sliderPosition = it },
+                    onValueChangeFinished = {
+                        sliderPosition?.let { viewModel.seekTo(it.toLong()) }
+                        sliderPosition = null
+                    },
                     valueRange = 0f..duration.toFloat().coerceAtLeast(1f),
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Row(modifier = Modifier.fillMaxWidth()) {
-                    Text(text = formatDuration(positionMs), style = MaterialTheme.typography.bodySmall)
+                    Text(text = formatDuration(displayPosition), style = MaterialTheme.typography.bodySmall)
                     Spacer(modifier = Modifier.weight(1f))
                     Text(text = formatDuration(duration), style = MaterialTheme.typography.bodySmall)
                 }
@@ -189,12 +206,74 @@ fun PlayerScreen(viewModel: PlayerViewModel, onBack: () -> Unit) {
                         )
                     }
                 }
-                // Phase 5 lyrics, below the controls. The whole
-                // player column scrolls, so long lyrics just flow
-                // on. For synced lyrics the line whose time has
-                // been reached is highlighted; unsynced lyrics
-                // are shown as a plain list.
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.VolumeDown,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Slider(
+                        value = volume,
+                        onValueChange = { viewModel.setVolume(it) },
+                        valueRange = 0f..1f,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Icon(
+                        imageVector = Icons.Filled.VolumeUp,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                if (queue.isNotEmpty()) {
+                    Text(
+                        text = "Up next",
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    val startIndex = queue.indexOfFirst { it.id == song.id }.takeIf { it >= 0 } ?: 0
+                    queue.drop(startIndex).take(30).forEach { queued ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { viewModel.playSong(queued, queue) }
+                                .padding(vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = queued.title,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = if (queued.id == song.id) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurface
+                                    },
+                                    maxLines = 1,
+                                )
+                                Text(
+                                    text = queued.artist,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                )
+                            }
+                            if (queued.id == song.id) {
+                                Text(
+                                    text = "Playing",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                )
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
                 Text(
                     text = "Lyrics",
                     style = MaterialTheme.typography.titleMedium,
@@ -215,7 +294,7 @@ fun PlayerScreen(viewModel: PlayerViewModel, onBack: () -> Unit) {
                     )
                 } else {
                     val currentIndex = if (lyricsSynced) {
-                        lyrics.indexOfLast { it.timeMs <= positionMs }
+                        lyrics.indexOfLast { it.timeMs <= displayPosition }
                     } else {
                         -1
                     }

@@ -35,6 +35,7 @@ import com.tunewave.player.player.PlayerViewModel
 @Composable
 fun SettingsScreen(viewModel: PlayerViewModel, onBack: () -> Unit) {
     val themeMode by viewModel.themeMode.collectAsState()
+    val dynamicColor by viewModel.dynamicColor.collectAsState()
     val equalizerEnabled by viewModel.equalizerEnabled.collectAsState()
     val equalizerPreset by viewModel.equalizerPreset.collectAsState()
     val crossfadeSeconds by viewModel.crossfadeSeconds.collectAsState()
@@ -72,8 +73,18 @@ fun SettingsScreen(viewModel: PlayerViewModel, onBack: () -> Unit) {
                 }
             }
             Spacer(modifier = Modifier.height(24.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("Material You dynamic colour", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                Switch(
+                    checked = dynamicColor,
+                    onCheckedChange = { viewModel.setDynamicColor(it) },
+                )
+            }
             Text(
-                text = "Android 12+ e Material You dynamic colour cholbe (wallpaper-er colour theke). Purono Android-e TuneWave-er nijer colour use hobe.",
+                text = "Off thakle TuneWave-er nijer deep-blue theme cholbe. On korle Android 12+ e wallpaper-er colour (Material You) use hobe.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -124,7 +135,7 @@ fun SettingsScreen(viewModel: PlayerViewModel, onBack: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(modifier = Modifier.height(16.dp))
-            Text("TuneWave 0.2.0 — Phase 4", style = MaterialTheme.typography.bodyMedium)
+            Text("TuneWave 0.8.0-beta", style = MaterialTheme.typography.bodyMedium)
             Text(
                 text = "Privacy-first, offline-first. Kono account, kono tracking nei.",
                 style = MaterialTheme.typography.bodyMedium,

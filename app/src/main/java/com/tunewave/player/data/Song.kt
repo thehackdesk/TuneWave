@@ -16,6 +16,10 @@ data class Song(
     val albumId: Long,
     val durationMs: Long,
     val uri: Uri,
+    // Folder from MediaStore RELATIVE_PATH (e.g. "Music/Artist").
+    // "Unknown" when the device does not report one: Android's
+    // scoped storage does not guarantee real folder paths.
+    val folder: String = "Unknown",
 ) {
     // Album art from MediaStore. May be null for albums without art.
     val albumArtUri: Uri?
