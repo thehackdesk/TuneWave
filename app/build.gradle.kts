@@ -12,8 +12,8 @@ android {
         applicationId = "com.tunewave.player"
         minSdk = 30
         targetSdk = 35
-        versionCode = 2
-        versionName = "0.2.0"
+        versionCode = 3
+        versionName = "0.3.0"
     }
 
     buildFeatures {
@@ -46,4 +46,5 @@ dependencies {
     implementation(libs.androidx.media3.common)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.coil.compose)
+    implementation(libs.androidx.glance.appwidget)
 }

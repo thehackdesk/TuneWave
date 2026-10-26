@@ -1,9 +1,12 @@
 package com.tunewave.player.player
 
+import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import com.tunewave.player.data.PlaylistStore
+import com.tunewave.player.widget.WidgetUpdater
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -29,9 +32,32 @@ class MusicService : MediaSessionService() {
     private var mediaSession: MediaSession? = null
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+    // Phase 3 widget: the service owns the player, so it is the
+    // one place that sees track and play-state changes even when
+    // the app UI is closed. It pushes those changes to the widget.
+    private val widgetListener = object : Player.Listener {
+        override fun onIsPlayingChanged(isPlaying: Boolean) {
+            serviceScope.launch {
+                WidgetUpdater.update(applicationContext, isPlaying = isPlaying)
+            }
+        }
+
+        override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+            val metadata = mediaItem?.mediaMetadata ?: return
+            serviceScope.launch {
+                WidgetUpdater.update(
+                    applicationContext,
+                    title = metadata.title?.toString(),
+                    artist = metadata.artist?.toString(),
+                )
+            }
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
         val player = ExoPlayer.Builder(this).build()
+        player.addListener(widgetListener)
         mediaSession = MediaSession.Builder(this, player).build()
         val store = PlaylistStore(applicationContext)
         serviceScope.launch {
@@ -49,6 +75,7 @@ class MusicService : MediaSessionService() {
         serviceScope.cancel()
         EqualizerManager.release()
         mediaSession?.run {
+            player.removeListener(widgetListener)
             player.release()
             release()
         }
