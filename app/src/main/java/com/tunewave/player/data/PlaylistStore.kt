@@ -29,6 +29,9 @@ class PlaylistStore(private val context: Context) {
     private val playlistsKey = stringPreferencesKey("playlists")
     private val playsKey = stringPreferencesKey("play_counts")
     private val themeKey = stringPreferencesKey("theme_mode")
+    private val equalizerEnabledKey = stringPreferencesKey("equalizer_enabled")
+    private val equalizerPresetKey = stringPreferencesKey("equalizer_preset")
+    private val crossfadeKey = stringPreferencesKey("crossfade_seconds")
 
     // Phase 3 theme setting: 0 = system, 1 = light, 2 = dark.
     val themeMode: Flow<Int> = context.dataStore.data.map { prefs ->
@@ -38,6 +41,37 @@ class PlaylistStore(private val context: Context) {
     suspend fun setThemeMode(mode: Int) {
         context.dataStore.edit { prefs ->
             prefs[themeKey] = mode.toString()
+        }
+    }
+
+    // Phase 4 audio settings.
+    val equalizerEnabled: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[equalizerEnabledKey]?.toBooleanStrictOrNull() ?: false
+    }
+
+    val equalizerPreset: Flow<String> = context.dataStore.data.map { prefs ->
+        prefs[equalizerPresetKey] ?: "Flat"
+    }
+
+    val crossfadeSeconds: Flow<Int> = context.dataStore.data.map { prefs ->
+        prefs[crossfadeKey]?.toIntOrNull() ?: 0
+    }
+
+    suspend fun setEqualizerEnabled(enabled: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[equalizerEnabledKey] = enabled.toString()
+        }
+    }
+
+    suspend fun setEqualizerPreset(preset: String) {
+        context.dataStore.edit { prefs ->
+            prefs[equalizerPresetKey] = preset
+        }
+    }
+
+    suspend fun setCrossfadeSeconds(seconds: Int) {
+        context.dataStore.edit { prefs ->
+            prefs[crossfadeKey] = seconds.toString()
         }
     }
 

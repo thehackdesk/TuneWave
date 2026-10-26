@@ -6,7 +6,9 @@ Inspired by the idea behind PixelPlayer, but with original code: no account, no 
 
 ## Status
 
-Phase 3 (part 1) — UI polish is implemented, but not yet tested on a device or emulator (no Android SDK in the development environment used to write this code). Phone testing is deferred to the end, as agreed.
+Phase 4 (part 1) — advanced audio settings are implemented, but not yet tested on a device or emulator (no Android SDK in the development environment used to write this code). Phone testing is deferred to the end, as agreed.
+
+Phase 4 part 1 includes: Android Equalizer presets (Flat, Bass Boost, Treble Boost, Vocal, Rock, Pop) applied to the playback audio session on service start, an equalizer on/off setting, and a crossfade duration setting stored for future use. Gapless playback is ExoPlayer's default. True crossfade mixing, FFmpeg extension, and a TagLib tag editor are not yet implemented.
 
 Phase 3 part 1 includes: Material You dynamic colour on Android 12+, System/Light/Dark theme setting saved in DataStore, a Settings screen, and album art in the full player (loaded with Coil from MediaStore album art). Home screen widgets (Glance) are not yet implemented and remain in Phase 3.
 

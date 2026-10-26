@@ -15,8 +15,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import com.tunewave.player.player.EqualizerManager
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -33,6 +35,9 @@ import com.tunewave.player.player.PlayerViewModel
 @Composable
 fun SettingsScreen(viewModel: PlayerViewModel, onBack: () -> Unit) {
     val themeMode by viewModel.themeMode.collectAsState()
+    val equalizerEnabled by viewModel.equalizerEnabled.collectAsState()
+    val equalizerPreset by viewModel.equalizerPreset.collectAsState()
+    val crossfadeSeconds by viewModel.crossfadeSeconds.collectAsState()
 
     Scaffold(
         topBar = {
@@ -72,8 +77,54 @@ fun SettingsScreen(viewModel: PlayerViewModel, onBack: () -> Unit) {
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            Spacer(modifier = Modifier.height(24.dp))
+            Text("Audio — Phase 4", style = MaterialTheme.typography.titleMedium)
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("Equalizer", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                Switch(
+                    checked = equalizerEnabled,
+                    onCheckedChange = { viewModel.setEqualizerEnabled(it) },
+                )
+            }
+            if (equalizerEnabled) {
+                EqualizerManager.presets.keys.forEach { preset ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        RadioButton(
+                            selected = equalizerPreset == preset,
+                            onClick = { viewModel.setEqualizerPreset(preset) },
+                        )
+                        Text(preset, style = MaterialTheme.typography.bodyLarge)
+                    }
+                }
+            }
             Spacer(modifier = Modifier.height(16.dp))
-            Text("TuneWave 0.1.0 — Phase 3", style = MaterialTheme.typography.bodyMedium)
+            Text("Crossfade (seconds)", style = MaterialTheme.typography.bodyLarge)
+            listOf(0, 2, 5, 10).forEach { seconds ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    RadioButton(
+                        selected = crossfadeSeconds == seconds,
+                        onClick = { viewModel.setCrossfadeSeconds(seconds) },
+                    )
+                    Text(if (seconds == 0) "Off" else "$seconds s", style = MaterialTheme.typography.bodyLarge)
+                }
+            }
+            Text(
+                text = "Note: Equalizer preset porer playback start theke apply hobe. Gapless playback ExoPlayer-e default-e cholbe; purno crossfade mixing ekhono implement hoyni, crossfade setting-ta pore tar jonno rakha hoyeche.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text("TuneWave 0.2.0 — Phase 4", style = MaterialTheme.typography.bodyMedium)
             Text(
                 text = "Privacy-first, offline-first. Kono account, kono tracking nei.",
                 style = MaterialTheme.typography.bodyMedium,

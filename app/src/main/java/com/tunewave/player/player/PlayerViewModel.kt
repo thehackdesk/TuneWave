@@ -43,6 +43,12 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
     val themeMode: StateFlow<Int> = playlistStore.themeMode
         .stateIn(viewModelScope, SharingStarted.Eagerly, 0)
+    val equalizerEnabled: StateFlow<Boolean> = playlistStore.equalizerEnabled
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    val equalizerPreset: StateFlow<String> = playlistStore.equalizerPreset
+        .stateIn(viewModelScope, SharingStarted.Eagerly, "Flat")
+    val crossfadeSeconds: StateFlow<Int> = playlistStore.crossfadeSeconds
+        .stateIn(viewModelScope, SharingStarted.Eagerly, 0)
 
     private val _songs = MutableStateFlow<List<Song>>(emptyList())
     val songs: StateFlow<List<Song>> = _songs.asStateFlow()
@@ -195,6 +201,18 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     fun setThemeMode(mode: Int) {
         viewModelScope.launch { playlistStore.setThemeMode(mode) }
+    }
+
+    fun setEqualizerEnabled(enabled: Boolean) {
+        viewModelScope.launch { playlistStore.setEqualizerEnabled(enabled) }
+    }
+
+    fun setEqualizerPreset(preset: String) {
+        viewModelScope.launch { playlistStore.setEqualizerPreset(preset) }
+    }
+
+    fun setCrossfadeSeconds(seconds: Int) {
+        viewModelScope.launch { playlistStore.setCrossfadeSeconds(seconds) }
     }
 
     fun toggleFavourite(songId: Long) {
