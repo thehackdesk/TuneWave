@@ -9,6 +9,8 @@ import androidx.lifecycle.viewModelScope
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
+import com.tunewave.player.data.LyricLine
+import com.tunewave.player.data.LyricsRepository
 import com.tunewave.player.data.MusicRepository
 import com.tunewave.player.data.Playlist
 import com.tunewave.player.data.PlaylistStore
@@ -32,6 +34,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     private val repository = MusicRepository(application.applicationContext)
     private val playlistStore = PlaylistStore(application.applicationContext)
+    private val lyricsRepository = LyricsRepository()
     private var controllerFuture: java.util.concurrent.Future<MediaController>? = null
 
     // Phase 2 state, persisted in DataStore (see PlaylistStore).
@@ -72,6 +75,23 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     private val _repeatMode = MutableStateFlow(0)
     val repeatMode: StateFlow<Int> = _repeatMode.asStateFlow()
 
+    // Phase 5 state: lyrics and artist artwork for the current song.
+    // These are best-effort online fetches; empty means not found
+    // or not fetched yet, never an error shown over playback.
+    private val _lyrics = MutableStateFlow<List<LyricLine>>(emptyList())
+    val lyrics: StateFlow<List<LyricLine>> = _lyrics.asStateFlow()
+
+    private val _lyricsSynced = MutableStateFlow(false)
+    val lyricsSynced: StateFlow<Boolean> = _lyricsSynced.asStateFlow()
+
+    private val _lyricsLoading = MutableStateFlow(false)
+    val lyricsLoading: StateFlow<Boolean> = _lyricsLoading.asStateFlow()
+
+    private val _artistImageUrl = MutableStateFlow<String?>(null)
+    val artistImageUrl: StateFlow<String?> = _artistImageUrl.asStateFlow()
+
+    private var lyricsSongId: Long? = null
+
     private val listener = object : Player.Listener {
         override fun onIsPlayingChanged(isPlaying: Boolean) {
             _isPlaying.value = isPlaying
@@ -85,6 +105,12 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             // Count a play when the track actually changes to a new song.
             if (id != null && id != previousId) {
                 viewModelScope.launch { playlistStore.recordPlay(id) }
+            }
+            // Phase 5: fetch lyrics + artist artwork for the new song.
+            val newSong = _currentSong.value
+            if (newSong != null && newSong.id != lyricsSongId) {
+                lyricsSongId = newSong.id
+                viewModelScope.launch { loadLyricsAndArtwork(newSong) }
             }
         }
 
@@ -132,6 +158,18 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             },
             ContextCompat.getMainExecutor(context),
         )
+    }
+
+    private suspend fun loadLyricsAndArtwork(song: Song) {
+        _lyricsLoading.value = true
+        try {
+            val result = lyricsRepository.fetchLyrics(song)
+            _lyrics.value = result?.lines ?: emptyList()
+            _lyricsSynced.value = result?.isSynced ?: false
+            _artistImageUrl.value = lyricsRepository.fetchArtistImageUrl(song.artist)
+        } finally {
+            _lyricsLoading.value = false
+        }
     }
 
     fun loadSongs() {

@@ -2,6 +2,8 @@ package com.tunewave.player.ui.screens
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,6 +17,7 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
@@ -38,6 +41,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.tunewave.player.player.PlayerViewModel
@@ -51,6 +55,10 @@ fun PlayerScreen(viewModel: PlayerViewModel, onBack: () -> Unit) {
     val shuffleEnabled by viewModel.shuffleEnabled.collectAsState()
     val repeatMode by viewModel.repeatMode.collectAsState()
     val favourites by viewModel.favourites.collectAsState()
+    val lyrics by viewModel.lyrics.collectAsState()
+    val lyricsSynced by viewModel.lyricsSynced.collectAsState()
+    val lyricsLoading by viewModel.lyricsLoading.collectAsState()
+    val artistImageUrl by viewModel.artistImageUrl.collectAsState()
 
     val song = currentSong
     Scaffold(
@@ -79,6 +87,7 @@ fun PlayerScreen(viewModel: PlayerViewModel, onBack: () -> Unit) {
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
+                    .verticalScroll(rememberScrollState())
                     .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
@@ -107,12 +116,25 @@ fun PlayerScreen(viewModel: PlayerViewModel, onBack: () -> Unit) {
                     textAlign = TextAlign.Center,
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "${song.artist} • ${song.album}",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (artistImageUrl != null) {
+                        AsyncImage(
+                            model = artistImageUrl,
+                            contentDescription = "Artist photo",
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape),
+                            contentScale = ContentScale.Crop,
+                        )
+                        Spacer(modifier = Modifier.size(8.dp))
+                    }
+                    Text(
+                        text = "${song.artist} • ${song.album}",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                    )
+                }
                 Spacer(modifier = Modifier.height(32.dp))
                 val duration = song.durationMs
                 Slider(
@@ -164,6 +186,53 @@ fun PlayerScreen(viewModel: PlayerViewModel, onBack: () -> Unit) {
                             imageVector = if (repeatMode == 2) Icons.Filled.RepeatOne else Icons.Filled.Repeat,
                             contentDescription = "Repeat",
                             tint = if (repeatMode == 0) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                }
+                // Phase 5 lyrics, below the controls. The whole
+                // player column scrolls, so long lyrics just flow
+                // on. For synced lyrics the line whose time has
+                // been reached is highlighted; unsynced lyrics
+                // are shown as a plain list.
+                Spacer(modifier = Modifier.height(32.dp))
+                Text(
+                    text = "Lyrics",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                if (lyricsLoading) {
+                    Text(
+                        text = "Lyrics khujchi...",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else if (lyrics.isEmpty()) {
+                    Text(
+                        text = "Lyrics pawa jayni",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    val currentIndex = if (lyricsSynced) {
+                        lyrics.indexOfLast { it.timeMs <= positionMs }
+                    } else {
+                        -1
+                    }
+                    lyrics.forEachIndexed { index, line ->
+                        Text(
+                            text = line.text,
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = if (index == currentIndex) FontWeight.Bold else FontWeight.Normal,
+                            color = if (index == currentIndex) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 2.dp),
                         )
                     }
                 }

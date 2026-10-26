@@ -6,7 +6,11 @@ Inspired by the idea behind PixelPlayer, but with original code: no account, no 
 
 ## Status
 
-Phase 3 (complete) — the Glance home screen widget is implemented: it shows the current/last song title and artist, with previous, play/pause, next, and Open-app controls. The widget's state is refreshed by MusicService, which owns the player, so it updates even when the app UI is closed. Album art is not shown in the widget yet. App version is now 0.3.0.
+Phase 5 (part 1) — synced lyrics and artist artwork are implemented: lyrics are fetched from LRCLIB (synced LRC when available, otherwise plain lyrics, with the current line highlighted as the song plays) and artist photos are fetched from Deezer's public artist search, shown next to the artist name in the full player. Both need internet, need no API key and no account, and a failed fetch only shows "lyrics not found" — it never interrupts playback. App version is now 0.4.0.
+
+Phase 4 remaining items are still pending: true crossfade mixing (needs a dual-player rewrite), the FFmpeg extension (needs an NDK build), and a TagLib tag editor (needs native TagLib). Doing those without device testing would risk breaking playback, so they are deferred to the device-testing stage.
+
+Phase 3 (complete) — the Glance home screen widget is implemented: it shows the current/last song title and artist, with previous, play/pause, next, and Open-app controls. The widget's state is refreshed by MusicService, which owns the player, so it updates even when the app UI is closed. Album art is not shown in the widget yet.
 
 Phase 4 (part 1) — advanced audio settings are implemented, but not yet tested on a device or emulator (no Android SDK in the development environment used to write this code). Phone testing is deferred to the end, as agreed.
 
@@ -47,7 +51,7 @@ Note: folder browsing is not yet implemented. On modern Android, scoped storage 
 ```
 app/src/main/java/com/tunewave/player/
 ├── MainActivity.kt          # App entry point, permission request
-├── data/                    # Song model, MediaStore scan, playlists/favourites store
+├── data/                    # Song model, MediaStore scan, playlists/favourites store, lyrics/artwork fetch
 ├── player/                  # MusicService (MediaSessionService), PlayerViewModel
 ├── widget/                  # Glance home screen widget, its actions and updater
 └── ui/
@@ -57,7 +61,7 @@ app/src/main/java/com/tunewave/player/
 
 ## Privacy
 
-TuneWave does not require an account and does not track you. Optional online features (lyrics, artwork, AI playlists), when added, will require their own API keys and will be clearly marked as optional.
+TuneWave does not require an account and does not track you. Its online features are lyrics (LRCLIB) and artist artwork (Deezer): they send only the song title, artist, album and duration, or the artist name, to those services, and need no API key. Future AI playlists, when added, will require the user's own API key and will be clearly marked as optional.
 
 ## License
 
